@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "yt-dlp": "^1.0.0",
     "cors": "^2.8.5",
     "fs": "^0.0.1-security"
   },
