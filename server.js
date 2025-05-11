@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cors = require("cors");
 const { exec } = require("child_process");
@@ -13,7 +14,7 @@ app.get("/download", (req, res) => {
     const videoUrl = req.query.url;
     const format = req.query.format || "mp3"; // Default to MP3
 
-    if (!videoUrl) return res.status(400).send("Provide a video URL!");
+    if (!videoUrl) return res.status(400).json({ error: "Provide a video URL!" });
 
     const outputPath = `downloads/%(title)s.%(ext)s`;
     const command = format === "mp4"
@@ -21,34 +22,34 @@ app.get("/download", (req, res) => {
         : `yt-dlp -f bestaudio --extract-audio --audio-format ${format} ${videoUrl} -o "${outputPath}"`;
 
     exec(command, (error, stdout, stderr) => {
-        if (error) return res.status(500).send(`Error: ${stderr}`);
-        res.send(`Downloaded: ${stdout}`);
+        if (error) return res.status(500).json({ error: stderr });
+        res.json({ message: "Download started successfully!", output: stdout });
     });
 });
 
-// 🔍 Search YouTube
+// 🔍 Search YouTube (Fixes JSON parsing issue)
 app.get("/search", (req, res) => {
     const query = req.query.q;
-    if (!query) return res.status(400).send("Provide a search query!");
+    if (!query) return res.status(400).json({ error: "Provide a search query!" });
 
-    const command = `yt-dlp "ytsearch10:${query}" --dump-json`;
+    const command = `yt-dlp --default-search "ytsearch10" --dump-json "${query}"`;
 
     exec(command, (error, stdout, stderr) => {
-        if (error) return res.status(500).send(`Error: ${stderr}`);
+        if (error) return res.status(500).json({ error: stderr });
 
         try {
-            const results = stdout
-                .split("\n")
-                .filter(line => line.trim().length > 0)
-                .map(line => JSON.parse(line))
-                .map(video => ({
-                    title: video.title,
-                    url: video.webpage_url
-                }));
+            const results = JSON.parse(`[${stdout.trim().split("\n").join(",")}]`);
+            const formattedResults = results.map(video => ({
+                title: video.title,
+                url: video.webpage_url,
+                duration: video.duration_string,
+                thumbnail: video.thumbnail
+            }));
 
-            res.json(results);
+            res.json(formattedResults);
         } catch (err) {
-            res.status(500).send("Failed to parse search results.");
+            console.error("JSON Parsing Error:", err);
+            res.status(500).json({ error: "Failed to parse search results." });
         }
     });
 });
@@ -56,10 +57,10 @@ app.get("/search", (req, res) => {
 // 📂 Cleanup Downloads Directory
 app.get("/cleanup", (req, res) => {
     fs.readdir("downloads", (err, files) => {
-        if (err) return res.status(500).send("Error accessing downloads folder.");
+        if (err) return res.status(500).json({ error: "Error accessing downloads folder." });
 
         files.forEach(file => fs.unlinkSync(`downloads/${file}`));
-        res.send("Downloads folder cleaned.");
+        res.json({ message: "Downloads folder cleaned successfully." });
     });
 });
 
