@@ -75,4 +75,4 @@ app.get("/cleanup", (req, res) => {
     });
 });
 
-module.exports = app; // Required for Vercel
+module.exports = app; // Required for Verce
