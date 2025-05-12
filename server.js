@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cors = require("cors");
 const { exec } = require("child_process");
@@ -18,7 +19,7 @@ app.get("/", (req, res) => {
     res.json({ message: "API is working!" });
 });
 
-// 🎵 Download Audio or Video (Now Uses Cookies)
+// 🎵 Download Audio or Video
 app.get("/download", (req, res) => {
     const videoUrl = req.query.url;
     const format = req.query.format || "mp3"; // Default to MP3
@@ -41,10 +42,8 @@ app.get("/search", (req, res) => {
     const query = req.query.q;
     if (!query) return res.status(400).json({ error: "Provide a search query!" });
 
-    // Reduce search request volume to avoid triggering bot detection
     const command = `"${ytDlpPath}" --cookies "${cookiesPath}" --default-search "ytsearch5" --dump-json "${query}"`;
 
-    // Introduce random delays between requests
     setTimeout(() => {
         exec(command, (error, stdout, stderr) => {
             if (error) return res.status(500).json({ error: stderr });
