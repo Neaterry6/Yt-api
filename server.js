@@ -5,13 +5,18 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-const port = process.env.PORT || 10000;
+const port = process.env.PORT || 3000;
 
 // Set yt-dlp binary path (local file)
 const ytDlpPath = path.resolve(__dirname, "yt-dlp");
 const cookiesPath = path.resolve(__dirname, "cookies.txt"); // Cookies file
 
 app.use(cors());
+
+// ✅ Health Check Endpoint
+app.get("/", (req, res) => {
+    res.json({ message: "API is working!" });
+});
 
 // 🎵 Download Audio or Video (Now Uses Cookies)
 app.get("/download", (req, res) => {
@@ -72,6 +77,4 @@ app.get("/cleanup", (req, res) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
+module.exports = app; // Required for Vercel
