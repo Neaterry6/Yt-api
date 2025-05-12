@@ -1,11 +1,14 @@
-
 const express = require("express");
 const cors = require("cors");
 const { exec } = require("child_process");
 const fs = require("fs");
+const path = require("path");
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 10000;
+
+// Set yt-dlp binary path (local file)
+const ytDlpPath = path.resolve(__dirname, "yt-dlp");
 
 app.use(cors());
 
@@ -18,21 +21,21 @@ app.get("/download", (req, res) => {
 
     const outputPath = `downloads/%(title)s.%(ext)s`;
     const command = format === "mp4"
-        ? `yt-dlp -f best ${videoUrl} -o "${outputPath}"`
-        : `yt-dlp -f bestaudio --extract-audio --audio-format ${format} ${videoUrl} -o "${outputPath}"`;
+        ? `"${ytDlpPath}" -f best ${videoUrl} -o "${outputPath}"`
+        : `"${ytDlpPath}" -f bestaudio --extract-audio --audio-format ${format} ${videoUrl} -o "${outputPath}"`;
 
     exec(command, (error, stdout, stderr) => {
         if (error) return res.status(500).json({ error: stderr });
-        res.json({ message: "Download started successfully!", output: stdout });
+        res.json({ message: "Download started!", output: stdout });
     });
 });
 
-// 🔍 Search YouTube (Fixes JSON parsing issue)
+// 🔍 Search YouTube
 app.get("/search", (req, res) => {
     const query = req.query.q;
     if (!query) return res.status(400).json({ error: "Provide a search query!" });
 
-    const command = `yt-dlp --default-search "ytsearch10" --dump-json "${query}"`;
+    const command = `"${ytDlpPath}" --default-search "ytsearch10" --dump-json "${query}"`;
 
     exec(command, (error, stdout, stderr) => {
         if (error) return res.status(500).json({ error: stderr });
