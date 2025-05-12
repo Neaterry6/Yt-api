@@ -30,31 +30,35 @@ app.get("/download", (req, res) => {
     });
 });
 
-// 🔍 Search YouTube
+// 🔍 Improved Search (Fixes Rate Limit Issues)
 app.get("/search", (req, res) => {
     const query = req.query.q;
     if (!query) return res.status(400).json({ error: "Provide a search query!" });
 
-    const command = `"${ytDlpPath}" --default-search "ytsearch10" --dump-json "${query}"`;
+    // Reduce search request volume to avoid triggering bot detection
+    const command = `"${ytDlpPath}" --default-search "ytsearch5" --dump-json "${query}"`;
 
-    exec(command, (error, stdout, stderr) => {
-        if (error) return res.status(500).json({ error: stderr });
+    // Introduce random delays between requests
+    setTimeout(() => {
+        exec(command, (error, stdout, stderr) => {
+            if (error) return res.status(500).json({ error: stderr });
 
-        try {
-            const results = JSON.parse(`[${stdout.trim().split("\n").join(",")}]`);
-            const formattedResults = results.map(video => ({
-                title: video.title,
-                url: video.webpage_url,
-                duration: video.duration_string,
-                thumbnail: video.thumbnail
-            }));
+            try {
+                const results = JSON.parse(`[${stdout.trim().split("\n").join(",")}]`);
+                const formattedResults = results.map(video => ({
+                    title: video.title,
+                    url: video.webpage_url,
+                    duration: video.duration_string,
+                    thumbnail: video.thumbnail
+                }));
 
-            res.json(formattedResults);
-        } catch (err) {
-            console.error("JSON Parsing Error:", err);
-            res.status(500).json({ error: "Failed to parse search results." });
-        }
-    });
+                res.json(formattedResults);
+            } catch (err) {
+                console.error("JSON Parsing Error:", err);
+                res.status(500).json({ error: "Failed to parse search results." });
+            }
+        });
+    }, Math.random() * 3000); // Random delay (0-3 sec)
 });
 
 // 📂 Cleanup Downloads Directory
@@ -69,4 +73,4 @@ app.get("/cleanup", (req, res) => {
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
-}); 
+});
