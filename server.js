@@ -9,10 +9,11 @@ const port = process.env.PORT || 10000;
 
 // Set yt-dlp binary path (local file)
 const ytDlpPath = path.resolve(__dirname, "yt-dlp");
+const cookiesPath = path.resolve(__dirname, "cookies.txt"); // Cookies file
 
 app.use(cors());
 
-// 🎵 Download Audio or Video
+// 🎵 Download Audio or Video (Now Uses Cookies)
 app.get("/download", (req, res) => {
     const videoUrl = req.query.url;
     const format = req.query.format || "mp3"; // Default to MP3
@@ -21,8 +22,8 @@ app.get("/download", (req, res) => {
 
     const outputPath = `downloads/%(title)s.%(ext)s`;
     const command = format === "mp4"
-        ? `"${ytDlpPath}" -f best ${videoUrl} -o "${outputPath}"`
-        : `"${ytDlpPath}" -f bestaudio --extract-audio --audio-format ${format} ${videoUrl} -o "${outputPath}"`;
+        ? `"${ytDlpPath}" --cookies "${cookiesPath}" -f best ${videoUrl} -o "${outputPath}"`
+        : `"${ytDlpPath}" --cookies "${cookiesPath}" -f bestaudio --extract-audio --audio-format ${format} ${videoUrl} -o "${outputPath}"`;
 
     exec(command, (error, stdout, stderr) => {
         if (error) return res.status(500).json({ error: stderr });
@@ -30,13 +31,13 @@ app.get("/download", (req, res) => {
     });
 });
 
-// 🔍 Improved Search (Fixes Rate Limit Issues)
+// 🔍 Improved Search (Uses Cookies & Fixes Rate Limit Issues)
 app.get("/search", (req, res) => {
     const query = req.query.q;
     if (!query) return res.status(400).json({ error: "Provide a search query!" });
 
     // Reduce search request volume to avoid triggering bot detection
-    const command = `"${ytDlpPath}" --default-search "ytsearch5" --dump-json "${query}"`;
+    const command = `"${ytDlpPath}" --cookies "${cookiesPath}" --default-search "ytsearch5" --dump-json "${query}"`;
 
     // Introduce random delays between requests
     setTimeout(() => {
