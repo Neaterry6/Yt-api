@@ -4,7 +4,8 @@
   "description": "A Node.js API to search and download YouTube videos using yt-dlp.",
   "main": "server.js",
   "scripts": {
-    "start": "curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp && chmod +x yt-dlp && node server.js"
+    "install": "curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp && chmod +x yt-dlp",
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
