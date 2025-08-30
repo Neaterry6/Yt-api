@@ -3,6 +3,7 @@ const cors = require("cors");
 const { exec } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const { google } = require("googleapis"); // Add googleapis for YouTube API
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -113,8 +114,8 @@ app.get("/file/:filename", (req, res) => {
     });
 });
 
-// 🔍 Improved Search
-app.get("/search", (req, res) => {
+// 🔍 Improved Search with YouTube Data API
+app.get("/search", async (req, res) => {
     const query = req.query.q;
     if (!query) {
         return res.status(400).json({
@@ -124,6 +125,44 @@ app.get("/search", (req, res) => {
         });
     }
 
+    const apiKey = process.env.YOUTUBE_API_KEY;
+
+    if (apiKey) {
+        // Use YouTube Data API if API key is available
+        try {
+            const youtube = google.youtube({
+                version: "v3",
+                auth: apiKey,
+            });
+
+            const response = await youtube.search.list({
+                part: "snippet",
+                q: query,
+                maxResults: 5, // Limit to 5 results, adjustable up to 50
+                type: "video",
+            });
+
+            const formattedResults = response.data.items.map(video => ({
+                title: video.snippet.title,
+                url: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+                duration: null, // YouTube API doesn't provide duration in search; fetch separately if needed
+                thumbnail: video.snippet.thumbnails.default.url,
+            }));
+
+            return res.json({
+                status: "success",
+                message: "Search completed",
+                data: formattedResults,
+                source: "YouTube Data API"
+            });
+        } catch (error) {
+            console.error("YouTube API Error:", error);
+            // Fallback to yt-dlp if API fails
+            console.log("Falling back to yt-dlp search due to API error");
+        }
+    }
+
+    // Fallback to yt-dlp search if no API key or API fails
     const command = `"${ytDlpPath}" --cookies "${cookiesPath}" --default-search "ytsearch5" --dump-json "${query}"`;
 
     setTimeout(() => {
@@ -148,12 +187,13 @@ app.get("/search", (req, res) => {
                 res.json({
                     status: "success",
                     message: "Search completed",
-                    data: formattedResults
+                    data: formattedResults,
+                    source: "yt-dlp"
                 });
             } catch (err) {
                 console.error("JSON Parsing Error:", err);
                 res.status(500).json({
-                    status: "download",
+                    status: "error",
                     message: "Failed to parse search results",
                     data: { error: err.message }
                 });
